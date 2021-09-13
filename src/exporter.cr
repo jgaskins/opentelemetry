@@ -41,6 +41,7 @@ module OpenTelemetry
 
     # Receives a list of exporters to delegate to
     def initialize(@exporters : Array(Exporter), @duration : Time::Span = 1.second, @max_size = 100, @log = Log.for(self))
+      spawn start
     end
 
     # Add the given traces to the buffer
@@ -70,7 +71,7 @@ module OpenTelemetry
           end
 
           # Clear out the buffer for the next batch
-          traces.clear
+          traces = [] of Trace
 
           # Restart the clock
           start = Time.monotonic

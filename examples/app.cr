@@ -10,7 +10,7 @@ Interro.config do |c|
 end
 
 OpenTelemetry.configure do |c|
-  exporter = OpenTelemetry::BatchExporter.new(
+  c.exporter = OpenTelemetry::BatchExporter.new(
     OpenTelemetry::HTTPExporter.new(
       endpoint: URI.parse("https://api.honeycomb.io"),
       headers: HTTP::Headers{
@@ -19,9 +19,6 @@ OpenTelemetry.configure do |c|
       },
     )
   )
-  c.exporter = exporter
-
-  spawn exporter.start
 end
 
 db.exec <<-SQL
