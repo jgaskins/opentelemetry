@@ -73,8 +73,6 @@ class App
                 products += 1
               end
             end
-
-            # OpenTelemetry.context product_count: products
           end
         end
       end
