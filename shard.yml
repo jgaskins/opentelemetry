@@ -11,6 +11,10 @@ targets:
 dependencies:
   db: # Used for DB::Pool to get a connection pool for `HTTP::Client`s
     github: crystal-lang/crystal-db
+  protobuf:
+    # github: jeromegn/protobuf.cr
+    github: m-o-e/protobuf.cr
+    branch: improve-enum # Uses short names for enums
 
 # For the example web app
 development_dependencies:
@@ -18,10 +22,6 @@ development_dependencies:
     github: jgaskins/armature
   interro:
     github: jgaskins/interro
-  protobuf:
-    # github: jeromegn/protobuf.cr
-    github: m-o-e/protobuf.cr
-    branch: improve-enum
   mpsc:
     github: jgaskins/mpsc
 
