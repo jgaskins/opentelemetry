@@ -1,0 +1,30 @@
+name: opentelemetry
+version: 0.1.0
+
+authors:
+  - Jamie Gaskins <jgaskins@hey.com>
+
+targets:
+  example_app:
+    main: examples/app.cr
+
+dependencies:
+  db: # Used for DB::Pool to get a connection pool for `HTTP::Client`s
+    github: crystal-lang/crystal-db
+
+# For the example web app
+development_dependencies:
+  armature:
+    github: jgaskins/armature
+  interro:
+    github: jgaskins/interro
+  protobuf:
+    # github: jeromegn/protobuf.cr
+    github: m-o-e/protobuf.cr
+    branch: improve-enum
+  mpsc:
+    github: jgaskins/mpsc
+
+crystal: 1.1.1
+
+license: MIT
