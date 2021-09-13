@@ -44,7 +44,7 @@ module OpenTelemetry
     end
 
     # Add the given traces to the buffer
-    def trace(traces : Array(Proto::Trace::V1::ResourceSpans))
+    def trace(traces : Array(Trace))
       @log.trace { "Received #{traces.size} traces" }
       traces.each do |trace|
         @buffer.send trace
