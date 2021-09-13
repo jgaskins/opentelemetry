@@ -77,7 +77,7 @@ http = HTTP::Server.new([
 
 ### Integrations
 
-You enable integrations simply by requiring them. They will be instrumented automatically.
+You enable many integrations simply by requiring them. They will be instrumented automatically.
 
 ```crystal
 # Load the integration for the crystal-lang/crystal-db shard
