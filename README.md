@@ -63,6 +63,18 @@ OpenTelemetry.trace "outer-span" do |span|
 end
 ```
 
+### `HTTP::Server` middleware
+
+If you are instrumenting a Crystal web app, you will want to add a `OpenTelemetry::Middleware` instance to your server middleware stack, passing in the name of the root span.
+
+```crystal
+http = HTTP::Server.new([
+  # ...
+  OpenTelemetry::Middleware.new("http.server.request"),
+  # ...
+])
+```
+
 ### Integrations
 
 You enable integrations simply by requiring them. They will be instrumented automatically.
