@@ -47,6 +47,22 @@ OpenTelemetry.configure do |c|
 end
 ```
 
+### Instrumenting
+
+Use the `OpenTelemetry.trace` method to create a new trace for the current fiber or to add a span inside the current trace.
+
+```crystal
+OpenTelemetry.trace "outer-span" do |span|
+  # do some work
+
+  OpenTelemetry.trace "inner-span" do |span|
+    # do some work
+  end
+
+  # do some work
+end
+```
+
 ### Integrations
 
 You enable integrations simply by requiring them. They will be instrumented automatically.
