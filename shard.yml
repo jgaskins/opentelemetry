@@ -15,6 +15,8 @@ dependencies:
     # github: jeromegn/protobuf.cr
     github: m-o-e/protobuf.cr
     branch: improve-enum # Uses short names for enums
+  mpsc:
+    github: jgaskins/mpsc
 
 # For the example web app
 development_dependencies:
@@ -22,8 +24,6 @@ development_dependencies:
     github: jgaskins/armature
   interro:
     github: jgaskins/interro
-  mpsc:
-    github: jgaskins/mpsc
 
 crystal: 1.0.0
 
