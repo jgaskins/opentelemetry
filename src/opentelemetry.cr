@@ -9,7 +9,7 @@ require "./proto/trace_service.pb"
 
 # TODO: Write documentation for `OpenTelemetry`
 module OpenTelemetry
-  VERSION = "0.1.0"
+  VERSION = "0.3.0"
 
   # The primary interface for OpenTelemetry tracing, called whenever you want to
   # either create a new trace or add nested spans to an existing trace.
