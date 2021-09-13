@@ -53,9 +53,11 @@ Use the `OpenTelemetry.trace` method to create a new trace for the current fiber
 
 ```crystal
 OpenTelemetry.trace "outer-span" do |span|
+  span["my-attribute"] = "my value"
   # do some work
 
   OpenTelemetry.trace "inner-span" do |span|
+    span["another-attribute"] = "another value"
     # do some work
   end
 
