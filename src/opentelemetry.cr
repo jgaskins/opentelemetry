@@ -114,7 +114,7 @@ module OpenTelemetry
   # Configuration for OpenTelemetry, see `OpenTelemetry.configure` for usage.
   class Configuration
     # Set the `OpenTelemetry::Exporter` instance.
-    property! exporter : Exporter
+    property exporter : Exporter = NullExporter.new
   end
 
   # :nodoc:

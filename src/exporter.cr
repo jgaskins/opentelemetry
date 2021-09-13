@@ -132,4 +132,11 @@ module OpenTelemetry
       @channel.send traces
     end
   end
+
+  class NullExporter
+    include Exporter
+
+    def trace(traces : Array(Trace))
+    end
+  end
 end
