@@ -67,7 +67,6 @@ class App
               span.kind = :client
               query = ProductQuery.new
               span["query.sql"] = query.to_sql
-              span["query.args"] = protobufify query.@args.map(&.to_s)
 
               query.each do |product|
                 OpenTelemetry.trace "render" do |span|
@@ -82,22 +81,6 @@ class App
           end
         end
       end
-    end
-
-    def protobufify(arg : String | Bool | Int | Float | Nil)
-      arg
-    end
-
-    def protobufify(arg : UUID)
-      arg.to_s
-    end
-
-    def protobufify(arg : Time)
-      arg.to_rfc3339(fraction_digits: 9)
-    end
-
-    def protobufify(arg : Array)
-      arg.map { |value| protobufify value }
     end
   end
 end
