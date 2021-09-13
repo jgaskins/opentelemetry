@@ -25,6 +25,6 @@ development_dependencies:
   mpsc:
     github: jgaskins/mpsc
 
-crystal: 1.1.1
+crystal: 1.0.0
 
 license: MIT
