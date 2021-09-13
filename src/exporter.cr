@@ -8,10 +8,10 @@ module OpenTelemetry
   module Exporter
     alias Trace = Proto::Trace::V1::ResourceSpans
 
-    abstract def trace(traces : Array(Proto::Trace::V1::ResourceSpans))
+    abstract def trace(traces : Array(Trace))
 
     # Send a single trace to the exporter's trace endpoint
-    def trace(trace : Proto::Trace::V1::ResourceSpans)
+    def trace(trace : Trace)
       trace [trace]
     end
   end
