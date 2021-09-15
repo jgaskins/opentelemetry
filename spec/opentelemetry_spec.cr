@@ -51,6 +51,23 @@ describe OpenTelemetry do
     span_names.should eq %w[first second]
   end
 
+  it "can memoize span attributes" do
+    OpenTelemetry.trace "" do |span|
+      (span["key"] ||= "value").should eq "value"
+      (span["key"] ||= "another value").should eq "value"
+      span["key"].should eq "value"
+    end
+  end
+
+  it "changes an attribute value when directly assigning" do
+    OpenTelemetry.trace "" do |span|
+      span["key"] = "first value"
+      span["key"] = "second value"
+
+      span["key"].should eq "second value"
+    end
+  end
+
   # The service_name config option is set in spec_helper.cr
   it "sets the service.name attribute with the service_name configuration option" do
     OpenTelemetry.trace "lol" do |span|

@@ -174,24 +174,37 @@ module OpenTelemetry
           # Shorthand for adding an attribute to a span
           def []=(key : String, value)
             attributes = @attributes ||= [] of Common::V1::KeyValue
-            attributes << Common::V1::KeyValue.new(
-              key: key,
-              value: Common::V1::AnyValue.new(value),
-            )
+            if kv = attributes.find { |kv| kv.key == key }
+              kv.value = Common::V1::AnyValue.new(value)
+            else
+              attributes << Common::V1::KeyValue.new(
+                key: key,
+                value: Common::V1::AnyValue.new(value),
+              )
+            end
+            value
           end
 
           def [](key : String)
             if attributes = self.attributes
               attributes.each do |kv|
-                if kv.key == key
-                  return kv.unwrapped_value
-                end
+                return kv.unwrapped_value if kv.key == key
               end
 
               missing_attribute! key
             else
               missing_attribute! key
             end
+          end
+
+          def []?(key : String)
+            if attributes = self.attributes
+              attributes.each do |kv|
+                return kv.unwrapped_value if kv.key == key
+              end
+            end
+
+            nil
           end
 
           def missing_attribute!(key : String)

@@ -1,0 +1,11 @@
+<!doctype html>
+
+<header>
+  <% if current_user %>
+    <p>Logged in as <%= current_user.name %></p>
+  <% else %>
+    <form method="POST" action="/login">
+      <button>Login</button>
+    </form>
+  <% end %>
+</header>
