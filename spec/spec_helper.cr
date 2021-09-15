@@ -4,6 +4,8 @@ require "../src/exporter"
 TEST_EXPORTER = TestExporter.new
 
 OpenTelemetry.configure do |c|
+  c.service_name = "Test App"
+
   # Make it so that we can test the traces by "exporting" to an in-memory
   # representation that we can query.
   c.exporter = TEST_EXPORTER

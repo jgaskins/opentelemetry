@@ -39,6 +39,7 @@ module OpenTelemetry
       kind: :internal
     )
     self.current_span = span
+    span["service.name"] = CONFIG.service_name
     ilspans = (trace.instrumentation_library_spans ||= [] of Proto::Trace::V1::InstrumentationLibrarySpans)
     unless ils = ilspans.first?
       ilspans << (ils = Proto::Trace::V1::InstrumentationLibrarySpans.new)
@@ -115,6 +116,7 @@ module OpenTelemetry
   class Configuration
     # Set the `OpenTelemetry::Exporter` instance.
     property exporter : Exporter = NullExporter.new
+    property service_name : String? = ""
   end
 
   # :nodoc:

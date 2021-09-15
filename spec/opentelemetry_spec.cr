@@ -50,6 +50,13 @@ describe OpenTelemetry do
 
     span_names.should eq %w[first second]
   end
+
+  # The service_name config option is set in spec_helper.cr
+  it "sets the service.name attribute with the service_name configuration option" do
+    OpenTelemetry.trace "lol" do |span|
+      span["service.name"].should eq "Test App"
+    end
+  end
 end
 
 private def spans

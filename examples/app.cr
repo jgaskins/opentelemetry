@@ -10,6 +10,7 @@ Interro.config do |c|
 end
 
 OpenTelemetry.configure do |c|
+  c.service_name = "Example App"
   c.exporter = OpenTelemetry::BatchExporter.new(
     OpenTelemetry::HTTPExporter.new(
       endpoint: URI.parse("https://api.honeycomb.io"),
