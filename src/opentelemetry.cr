@@ -47,13 +47,13 @@ module OpenTelemetry
     spans = (ils.spans ||= [] of Proto::Trace::V1::Span)
 
     span.start_time_unix_nano = (Time.utc - Time::UNIX_EPOCH).total_nanoseconds.to_u64
+    spans << span
 
     begin
       yield span
     ensure
       span.end_time_unix_nano = (Time.utc - Time::UNIX_EPOCH).total_nanoseconds.to_u64
       Fiber.current.current_otel_span = previous_current_span
-      spans << span
 
       if previous_current_span.nil?
         self.current_trace_id = nil if is_new_trace
