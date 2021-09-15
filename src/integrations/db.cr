@@ -18,7 +18,7 @@ class DB::Statement
 
       # Span attribute conventions from:
       #   https://github.com/open-telemetry/opentelemetry-specification/blob/82b5317f55931bb3a6208c217dc5c730001d0670/specification/trace/semantic_conventions/database.md#mysql
-      span["db.system"] = "postgresql"
+      span["db.system"] = db_uri.scheme
       span["db.connection_string"] = db_uri.to_s
       span["db.user"] = db_uri.user
       span["net.peer.name"] = db_uri.host
