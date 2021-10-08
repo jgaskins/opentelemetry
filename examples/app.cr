@@ -97,7 +97,7 @@ class App
       end
 
       if current_user
-        OpenTelemetry.current_trace.instrumentation_library_spans.not_nil!.flat_map(&.spans.not_nil!).each do |span|
+        OpenTelemetry.current_trace.spans.each do |span|
           span["user.id"] = current_user.id.to_s
           span["user.email"] = current_user.email
           span["user.name"] = current_user.name

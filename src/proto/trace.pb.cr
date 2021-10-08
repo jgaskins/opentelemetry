@@ -8,7 +8,7 @@ module OpenTelemetry
   module Proto
     module Trace
       module V1
-        class ResourceSpans
+        struct ResourceSpans
           include ::Protobuf::Message
 
           contract_of "proto3" do
@@ -18,7 +18,7 @@ module OpenTelemetry
           end
         end
 
-        class InstrumentationLibrarySpans
+        struct InstrumentationLibrarySpans
           include ::Protobuf::Message
 
           contract_of "proto3" do
@@ -28,7 +28,7 @@ module OpenTelemetry
           end
         end
 
-        class Span
+        struct Span
           include ::Protobuf::Message
           enum SpanKind
             UNSPECIFIED = 0
@@ -39,7 +39,7 @@ module OpenTelemetry
             CONSUMER    = 5
           end
 
-          class Event
+          struct Event
             include ::Protobuf::Message
 
             contract_of "proto3" do
@@ -50,7 +50,7 @@ module OpenTelemetry
             end
           end
 
-          class Link
+          struct Link
             include ::Protobuf::Message
 
             contract_of "proto3" do
@@ -81,7 +81,7 @@ module OpenTelemetry
           end
         end
 
-        class Status
+        struct Status
           include ::Protobuf::Message
           enum DeprecatedStatusCode
             OK                  =  0

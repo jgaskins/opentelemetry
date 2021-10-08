@@ -31,33 +31,33 @@ module OpenTelemetry
     is_new_trace = current_trace_id.nil?
     trace_id = self.current_trace_id ||= Random::Secure.random_bytes(16)
     previous_current_span = current_span
-    span = Proto::Trace::V1::Span.new(
+    span = API::Span.new(
       name: name,
-      span_id: Random::Secure.random_bytes(8),
-      trace_id: current_trace_id,
-      parent_span_id: previous_current_span.try(&.span_id),
+      trace_id: trace_id,
+      parent_id: previous_current_span.try(&.id),
       kind: :internal
     )
     self.current_span = span
     span["service.name"] = CONFIG.service_name
-    ilspans = (trace.instrumentation_library_spans ||= [] of Proto::Trace::V1::InstrumentationLibrarySpans)
-    unless ils = ilspans.first?
-      ilspans << (ils = Proto::Trace::V1::InstrumentationLibrarySpans.new)
-    end
-    spans = (ils.spans ||= [] of Proto::Trace::V1::Span)
 
-    span.start_time_unix_nano = (Time.utc - Time::UNIX_EPOCH).total_nanoseconds.to_u64
-    spans << span
+    span.started!
+    trace.spans << span
 
     begin
       yield span
+    rescue ex
+      span.status = Proto::Trace::V1::Status.new(
+        code: :error,
+        message: "#{ex.class.name}: #{ex.message}",
+      )
+      raise ex
     ensure
-      span.end_time_unix_nano = (Time.utc - Time::UNIX_EPOCH).total_nanoseconds.to_u64
+      span.ended!
       Fiber.current.current_otel_span = previous_current_span
 
       if previous_current_span.nil?
         self.current_trace_id = nil if is_new_trace
-        CONFIG.exporter.trace(trace)
+        CONFIG.exporter.trace(trace.to_protobuf)
         reset_current_trace!
       end
     end
@@ -75,12 +75,12 @@ module OpenTelemetry
 
   # :nodoc:
   def self.current_trace
-    Fiber.current.current_otel_resource_spans!
+    Fiber.current.current_otel_trace!
   end
 
   # :nodoc:
   def self.reset_current_trace!
-    Fiber.current.current_otel_resource_spans = nil
+    Fiber.current.current_otel_trace = nil
   end
 
   # :nodoc:
@@ -89,7 +89,7 @@ module OpenTelemetry
   end
 
   # :nodoc:
-  def self.current_span=(span : Proto::Trace::V1::Span)
+  def self.current_span=(span : API::Span)
     Fiber.current.current_otel_span = span
   end
 
@@ -143,23 +143,101 @@ module OpenTelemetry
     def call(context : HTTP::Server::Context)
       OpenTelemetry.trace @name do |span|
         span.kind = :server
-        span["path"] = context.request.path
-        span["method"] = context.request.method
-        span["query_params"] = context.request.query_params.@raw_params
+        span["request.path"] = context.request.path
+        span["request.method"] = context.request.method
+        context.request.query_params.each do |key, value|
+          span["request.query_params.#{key}"] = value
+        end
 
         begin
           call_next context
-        rescue ex
-          span.status = Proto::Trace::V1::Status.new(
-            code: :error,
-            message: "#{ex.class.name}: #{ex.message}",
-          )
-          raise ex
         ensure
-          span["status"] = context.response.status_code.to_i64
+          span["response.status_code"] = context.response.status_code.to_i64
           if context.response.status_code < 400
             span.status = Proto::Trace::V1::Status.new(code: :ok)
           end
+          # pp current_trace: OpenTelemetry.current_trace
+        end
+      end
+    end
+  end
+
+  module API
+    class Trace
+      getter id : Bytes = Random::Secure.random_bytes(16)
+      getter spans = [] of Span
+
+      def to_protobuf
+        Proto::Trace::V1::ResourceSpans.new(
+          instrumentation_library_spans: [
+            Proto::Trace::V1::InstrumentationLibrarySpans.new(
+              spans: spans.map(&.to_protobuf)
+            ),
+          ],
+        )
+      end
+    end
+
+    class Span
+      alias PrimitiveAttributeValue = String | Int32 | Int64 | Bool | Nil
+      alias AttributeValue = PrimitiveAttributeValue | Hash(String, PrimitiveAttributeValue) | Array(PrimitiveAttributeValue)
+
+      getter name : String
+      getter id : Bytes = Random::Secure.random_bytes(8)
+      getter trace_id : Bytes
+      getter parent_id : Bytes?
+      getter attributes = {} of String => AttributeValue
+      getter started_at : Time?
+      getter ended_at : Time?
+      property kind : Proto::Trace::V1::Span::SpanKind
+      property status : Proto::Trace::V1::Status?
+
+      def initialize(@name, @trace_id, @parent_id, @kind : Proto::Trace::V1::Span::SpanKind)
+      end
+
+      def []=(key : String, value : AttributeValue)
+        attributes[key] = value
+      end
+
+      def []?(key : String)
+        attributes[key]?
+      end
+
+      def started!(now : Time = Time.utc)
+        @started_at = now
+      end
+
+      def ended!(now : Time = Time.utc)
+        @ended_at = now
+      end
+
+      def to_protobuf
+        span = Proto::Trace::V1::Span.new(
+          name: name,
+          span_id: id,
+          trace_id: trace_id,
+          parent_span_id: parent_id,
+          start_time_unix_nano: started_at_nanoseconds,
+          end_time_unix_nano: ended_at_nanoseconds,
+          kind: kind,
+        )
+
+        attributes.each do |key, value|
+          span[key] = value
+        end
+
+        span
+      end
+
+      private def started_at_nanoseconds
+        if started_at = self.started_at
+          (started_at - Time::UNIX_EPOCH).total_nanoseconds.to_u64
+        end
+      end
+
+      private def ended_at_nanoseconds
+        if ended_at = self.ended_at
+          (ended_at - Time::UNIX_EPOCH).total_nanoseconds.to_u64
         end
       end
     end
@@ -170,7 +248,7 @@ module OpenTelemetry
   module Proto
     module Trace
       module V1
-        class Span
+        struct Span
           # Shorthand for adding an attribute to a span
           def []=(key : String, value)
             attributes = @attributes ||= [] of Common::V1::KeyValue
@@ -216,7 +294,7 @@ module OpenTelemetry
 
     module Common
       module V1
-        class AnyValue
+        struct AnyValue
           def initialize(@string_value : String)
           end
 
@@ -257,7 +335,7 @@ module OpenTelemetry
           end
         end
 
-        class KeyValue
+        struct KeyValue
           def unwrapped_value
             if value = self.value
               value.unwrapped_value

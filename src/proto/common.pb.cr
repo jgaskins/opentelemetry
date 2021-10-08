@@ -5,7 +5,7 @@ module OpenTelemetry
   module Proto
     module Common
       module V1
-        class AnyValue
+        struct AnyValue
           include ::Protobuf::Message
 
           contract_of "proto3" do
@@ -19,7 +19,7 @@ module OpenTelemetry
           end
         end
 
-        class ArrayValue
+        struct ArrayValue
           include ::Protobuf::Message
 
           contract_of "proto3" do
@@ -27,7 +27,7 @@ module OpenTelemetry
           end
         end
 
-        class KeyValueList
+        struct KeyValueList
           include ::Protobuf::Message
 
           contract_of "proto3" do
@@ -35,7 +35,7 @@ module OpenTelemetry
           end
         end
 
-        class KeyValue
+        struct KeyValue
           include ::Protobuf::Message
 
           contract_of "proto3" do
@@ -44,7 +44,7 @@ module OpenTelemetry
           end
         end
 
-        class StringKeyValue
+        struct StringKeyValue
           include ::Protobuf::Message
 
           contract_of "proto3" do
@@ -53,7 +53,7 @@ module OpenTelemetry
           end
         end
 
-        class InstrumentationLibrary
+        struct InstrumentationLibrary
           include ::Protobuf::Message
 
           contract_of "proto3" do

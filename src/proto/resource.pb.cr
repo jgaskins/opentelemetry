@@ -7,7 +7,7 @@ module OpenTelemetry
   module Proto
     module Resource
       module V1
-        class Resource
+        struct Resource
           include ::Protobuf::Message
 
           contract_of "proto3" do
