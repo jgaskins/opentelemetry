@@ -38,7 +38,7 @@ struct Interro::QueryBuilder(T)
         yield result
         results += 1
       end
-      span["results.size"] = results
+      span["db.results.size"] = results
     end
   end
 end
