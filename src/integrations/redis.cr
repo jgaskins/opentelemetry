@@ -13,7 +13,7 @@ class Redis::Connection
       when UNIXSocket
         span["net.transport"] = "Unix"
       end
-      span["db.statement"] = command.join(' ')
+      span["db.statement"] = command.map(&.inspect_unquoted).join(' ')
       span["db.redis.database_index"] = @uri.path[1..].presence
 
       result = previous_def
