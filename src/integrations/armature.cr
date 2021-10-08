@@ -51,3 +51,20 @@ class Armature::Route::Request
     end
   {% end %}
 end
+
+require "armature/cache"
+class Armature::Cache::RedisStore
+  def fetch(key : String, expires_in duration : Time::Span?, & : -> T) forall T
+    OpenTelemetry.trace "cache.fetch" do |span|
+      span["cache.key"] = key
+      span["cache.hit"] = true
+      span.kind = :client
+
+      previous_def do
+        span["cache.hit"] = false
+
+        yield
+      end
+    end
+  end
+end
