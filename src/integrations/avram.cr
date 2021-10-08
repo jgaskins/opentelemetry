@@ -23,6 +23,7 @@ module Avram::Queryable(T)
   end
 
   private def assign_otel_attributes(span, operation)
+    span["net.transport"] = "IP.TCP"
     span["db.table"] = query.table.to_s
     span["db.system"] = "postgresql"
     sql = to_sql.join(", ")
@@ -30,12 +31,11 @@ module Avram::Queryable(T)
     span["db.operation"] = operation
     span.kind = :client
 
-    # TODO: Is there a way to get these attributes in Avarm?
+    # TODO: Is there a way to get these attributes in Avram?
     # span["db.connection_string"] = db_uri.to_s
     # span["db.user"] = db_uri.user
     # span["net.peer.name"] = db_uri.host
     # span["net.peer.port"] = db_uri.port
-    # span["net.transport"] = "IP.TCP"
     # span["db.name"] = db_uri.path[1..]
   end
 end
@@ -43,9 +43,7 @@ end
 class Avram::SaveOperation(T)
   def save
     OpenTelemetry.trace "#{self.class.name}#save" do |span|
-      # assign_otel_attributes span
-      pp self
-      result = previous_def
+      previous_def
     end
   end
 end
