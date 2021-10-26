@@ -40,7 +40,7 @@ module OpenTelemetry
     end
 
     # Receives a list of exporters to delegate to
-    def initialize(@exporters : Array(Exporter), @duration : Time::Span = 1.second, @max_size = 100, @log = Log.for(self))
+    def initialize(@exporters : Array(Exporter), @duration : Time::Span = 1.second, @max_size = 100, @log = Log.for(self.class))
       spawn start
     end
 
