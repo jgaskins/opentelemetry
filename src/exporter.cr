@@ -36,7 +36,7 @@ module OpenTelemetry
 
     # Constructor that receives a single exporter
     def self.new(exporter : Exporter, duration = 1.second, max_size = 100, log = Log.for(self))
-      new([exporter.as(Exporter)], duration, max_size, log)
+      new([exporter] of Exporter, duration, max_size, log)
     end
 
     # Receives a list of exporters to delegate to
@@ -96,10 +96,10 @@ module OpenTelemetry
 
     # Configures the exporter to send telemetry to the given HTTP collector for
     # OpenTelemetry data.
-    def initialize(@endpoint : URI, @headers : HTTP::Headers)
+    def initialize(@endpoint : URI, @headers : HTTP::Headers = HTTP::Headers.new)
       pool_options = {
         max_idle_pool_size: ENV.fetch("OTEL_HTTP_EXPORTER_MAX_POOL_IDLE_SIZE", "6").to_i,
-        max_pool_size: ENV.fetch("OTEL_HTTP_EXPORTER_MAX_POOL_SIZE", "6").to_i,
+        max_pool_size:      ENV.fetch("OTEL_HTTP_EXPORTER_MAX_POOL_SIZE", "6").to_i,
       }
 
       @pool = DB::Pool.new(**pool_options) do
@@ -109,7 +109,7 @@ module OpenTelemetry
           @headers.each do |key, value|
             h[key] = value
           end
-          h["content-type"] = "application/protobuf"
+          h["content-type"] = "application/x-protobuf"
           h["connection"] = "keep-alive"
         end
         http
@@ -123,6 +123,8 @@ module OpenTelemetry
             @log.debug { "Sending #{traces.size} traces" }
             http.post "/v1/traces", body: Proto::Collector::Trace::V1::ExportTraceServiceRequest.new(resource_spans: traces).to_protobuf.to_slice
           end
+        rescue ex
+          @log.warn { "#{ex}\n#{ex.backtrace.join("\n")}" }
         end
       end
     end
