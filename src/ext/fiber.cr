@@ -1,5 +1,6 @@
 require "../proto/trace.pb"
 require "../proto/common.pb"
+require "../api"
 
 # :nodoc:
 class Fiber

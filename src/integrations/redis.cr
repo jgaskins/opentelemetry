@@ -9,18 +9,15 @@ class Redis::Connection
       span["net.peer.name"] = @uri.host
       case socket = @socket
       when TCPSocket, OpenSSL::SSL::Socket::Client
-        span["net.transport"] = "IP.TCP"
+        span["net.transport"] = "ip_tcp"
       when UNIXSocket
         span["net.transport"] = "Unix"
       end
       span["db.statement"] = command.map(&.inspect_unquoted).join(' ')
-      span["db.redis.database_index"] = @uri.path[1..].presence
+      span["db.redis.database_index"] = (@uri.path.presence || "/")[1..].presence
+      span.kind = :client
 
       result = previous_def
-
-      case result
-      when Array
-      end
 
       result
     end

@@ -2,30 +2,40 @@ require "db"
 
 class DB::Statement
   def_around_query_or_exec do |args|
-    operation = command[0...command.index(' ')]
+    query = command.strip.gsub(/\s+/, ' ')
+    operation = query.strip[0...command.index(' ')]
 
-    OpenTelemetry.trace operation do |span|
-      uri = connection.context.uri
-      span["query.sql"] = command
-      span["query.args"] = args.map(&.inspect).join(", ")
-      span["host"] = uri.host
-      span["db"] = uri.path[1..]
+    OpenTelemetry.trace query do |span|
       db_uri = connection
         .context
         .uri
         .dup
         .tap { |uri| uri.password = "FILTERED" }
+      statement_args = args.map do |arg|
+        if arg.class.name =~ /password/i
+          arg = "[FILTERED]"
+        end
+
+        arg.inspect
+      end
 
       # Span attribute conventions from:
       #   https://github.com/open-telemetry/opentelemetry-specification/blob/82b5317f55931bb3a6208c217dc5c730001d0670/specification/trace/semantic_conventions/database.md#mysql
-      span["db.system"] = db_uri.scheme
+      db_system = case scheme = db_uri.scheme
+                  when "postgres"
+                    "postgresql"
+                  else
+                    scheme
+                  end
+      span["db.system"] = db_system
       span["db.connection_string"] = db_uri.to_s
       span["db.user"] = db_uri.user
-      span["net.peer.name"] = db_uri.host
-      span["net.peer.port"] = db_uri.port
-      span["net.transport"] = "IP.TCP"
+      span["net.peer.name"] = db_uri.host || "localhost"
+      span["net.peer.port"] = db_uri.port || 5432 # FIXME: Make this work for non-Postgres DBs
+      span["net.transport"] = "ip_tcp"
       span["db.name"] = db_uri.path[1..]
       span["db.statement"] = command
+      span["db.statement_args"] = statement_args.join(", ")
       span["db.operation"] = operation
       span.kind = :client
 
@@ -49,11 +59,38 @@ class DB::ResultSet
     uri = statement.connection.context.uri
     host = uri.host
     db = uri.path[1..-1]
+    query = statement.command.strip.gsub(/\s+/, ' ')
+    operation = query.strip[0...statement.command.index(' ')]
 
     OpenTelemetry.trace "db.result_set.each" do |span|
-      span["query.sql"] = statement.command
-      span["host"] = host
-      span["db"] = db
+      db_uri = uri.dup.tap { |uri| uri.password = "FILTERED" }
+      # TODO: Can we get these?
+      # statement_args = statement.args.map do |arg|
+      #   if arg.class.name =~ /password/i
+      #     arg = "[FILTERED]"
+      #   end
+
+      #   arg.inspect
+      # end
+
+      # Span attribute conventions from:
+      #   https://github.com/open-telemetry/opentelemetry-specification/blob/82b5317f55931bb3a6208c217dc5c730001d0670/specification/trace/semantic_conventions/database.md#mysql
+      db_system = case scheme = db_uri.scheme
+                  when "postgres"
+                    "postgresql"
+                  else
+                    scheme
+                  end
+      span["db.system"] = db_system
+      span["db.connection_string"] = db_uri.to_s
+      span["db.user"] = db_uri.user
+      span["net.peer.name"] = db_uri.host || "localhost"
+      span["net.peer.port"] = db_uri.port || 5432 # FIXME: Make this work for non-Postgres DBs
+      span["net.transport"] = "ip_tcp"
+      span["db.name"] = db_uri.path[1..]
+      span["db.statement"] = statement.command
+      # span["db.statement_args"] = statement_args.join(", ")
+      span["db.operation"] = operation
       span.kind = :client
       result_count = 0
 
@@ -63,8 +100,8 @@ class DB::ResultSet
           yield
         end
       ensure
-        span["row_count"] = result_count
-        span["column_count"] = column_count
+        span["db.row_count"] = result_count
+        span["db.column_count"] = column_count
       end
     end
   end

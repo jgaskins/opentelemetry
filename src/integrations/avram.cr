@@ -23,7 +23,7 @@ module Avram::Queryable(T)
   end
 
   private def assign_otel_attributes(span, operation)
-    span["net.transport"] = "IP.TCP"
+    span["net.transport"] = "ip_tcp"
     span["db.table"] = query.table.to_s
     span["db.system"] = "postgresql"
     sql = to_sql.join(", ")

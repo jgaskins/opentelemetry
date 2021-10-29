@@ -143,8 +143,14 @@ module OpenTelemetry
     def call(context : HTTP::Server::Context)
       OpenTelemetry.trace @name do |span|
         span.kind = :server
-        span["request.path"] = context.request.path
-        span["request.method"] = context.request.method
+        span["http.server_name"] = context.request.headers["host"]?
+        span["http.client_ip"] = context.request.headers["x-forward-for"]? || context.request.remote_address.as(Socket::IPAddress).address
+        span["http.user_agent"] = context.request.headers["user-agent"]?
+        span["http.path"] = context.request.path
+        span["http.method"] = context.request.method
+        span["http.target"] = context.request.resource
+        span["http.flavor"] = context.request.version
+        span["http.host"] = context.request.headers["host"]?
         context.request.query_params.each do |key, value|
           span["request.query_params.#{key}"] = value
         end
@@ -152,195 +158,11 @@ module OpenTelemetry
         begin
           call_next context
         ensure
-          span["response.status_code"] = context.response.status_code.to_i64
+          span["http.status_code"] = context.response.status_code.to_i64
           if context.response.status_code < 400
             span.status = Proto::Trace::V1::Status.new(code: :ok)
           end
           # pp current_trace: OpenTelemetry.current_trace
-        end
-      end
-    end
-  end
-
-  module API
-    class Trace
-      getter id : Bytes = Random::Secure.random_bytes(16)
-      getter spans = [] of Span
-
-      def to_protobuf
-        Proto::Trace::V1::ResourceSpans.new(
-          instrumentation_library_spans: [
-            Proto::Trace::V1::InstrumentationLibrarySpans.new(
-              spans: spans.map(&.to_protobuf)
-            ),
-          ],
-        )
-      end
-    end
-
-    class Span
-      alias PrimitiveAttributeValue = String | Int32 | Int64 | Bool | Nil
-      alias AttributeValue = PrimitiveAttributeValue | Hash(String, PrimitiveAttributeValue) | Array(PrimitiveAttributeValue)
-
-      getter name : String
-      getter id : Bytes = Random::Secure.random_bytes(8)
-      getter trace_id : Bytes
-      getter parent_id : Bytes?
-      getter attributes = {} of String => AttributeValue
-      getter started_at : Time?
-      getter ended_at : Time?
-      property kind : Proto::Trace::V1::Span::SpanKind
-      property status : Proto::Trace::V1::Status?
-
-      def initialize(@name, @trace_id, @parent_id, @kind : Proto::Trace::V1::Span::SpanKind)
-      end
-
-      def []=(key : String, value : AttributeValue)
-        attributes[key] = value
-      end
-
-      def []?(key : String)
-        attributes[key]?
-      end
-
-      def started!(now : Time = Time.utc)
-        @started_at = now
-      end
-
-      def ended!(now : Time = Time.utc)
-        @ended_at = now
-      end
-
-      def to_protobuf
-        span = Proto::Trace::V1::Span.new(
-          name: name,
-          span_id: id,
-          trace_id: trace_id,
-          parent_span_id: parent_id,
-          start_time_unix_nano: started_at_nanoseconds,
-          end_time_unix_nano: ended_at_nanoseconds,
-          kind: kind,
-        )
-
-        attributes.each do |key, value|
-          span[key] = value
-        end
-
-        span
-      end
-
-      private def started_at_nanoseconds
-        if started_at = self.started_at
-          (started_at - Time::UNIX_EPOCH).total_nanoseconds.to_u64
-        end
-      end
-
-      private def ended_at_nanoseconds
-        if ended_at = self.ended_at
-          (ended_at - Time::UNIX_EPOCH).total_nanoseconds.to_u64
-        end
-      end
-    end
-  end
-end
-
-module OpenTelemetry
-  module Proto
-    module Trace
-      module V1
-        struct Span
-          # Shorthand for adding an attribute to a span
-          def []=(key : String, value)
-            attributes = @attributes ||= [] of Common::V1::KeyValue
-            if kv = attributes.find { |kv| kv.key == key }
-              kv.value = Common::V1::AnyValue.new(value)
-            else
-              attributes << Common::V1::KeyValue.new(
-                key: key,
-                value: Common::V1::AnyValue.new(value),
-              )
-            end
-            value
-          end
-
-          def [](key : String)
-            if attributes = self.attributes
-              attributes.each do |kv|
-                return kv.unwrapped_value if kv.key == key
-              end
-
-              missing_attribute! key
-            else
-              missing_attribute! key
-            end
-          end
-
-          def []?(key : String)
-            if attributes = self.attributes
-              attributes.each do |kv|
-                return kv.unwrapped_value if kv.key == key
-              end
-            end
-
-            nil
-          end
-
-          def missing_attribute!(key : String)
-            raise KeyError.new("No attribute #{key.inspect} for span #{name.inspect}")
-          end
-        end
-      end
-    end
-
-    module Common
-      module V1
-        struct AnyValue
-          def initialize(@string_value : String)
-          end
-
-          def initialize(@bool_value : Bool)
-          end
-
-          def initialize(int_value : Int)
-            @int_value = int_value.to_i64
-          end
-
-          def initialize(double_value : Float)
-            @double_value = double_value.to_f64
-          end
-
-          def initialize(array_value : Array)
-            @array_value = ArrayValue.new(array_value.map { |value|
-              AnyValue.new(value)
-            })
-          end
-
-          def initialize(kvlist_value : Hash)
-            values = Array(KeyValue).new(initial_capacity: kvlist_value.size)
-            kvlist_value.each do |key, value|
-              values << KeyValue.new(key: key, value: AnyValue.new(value))
-            end
-
-            @kvlist_value = KeyValueList.new(values)
-          end
-
-          def initialize(@bytes_value : Bytes)
-          end
-
-          def initialize(nil_value : Nil)
-          end
-
-          def unwrapped_value
-            string_value || bool_value || int_value || double_value || array_value || kvlist_value || bytes_value
-          end
-        end
-
-        struct KeyValue
-          def unwrapped_value
-            if value = self.value
-              value.unwrapped_value
-            end
-          end
         end
       end
     end
