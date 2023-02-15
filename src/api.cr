@@ -29,9 +29,9 @@ module OpenTelemetry
 
         Proto::Resource::V1::Resource.new(
           attributes: [
-            OpenTelemetry::Proto::Common::V1::KeyValue.new(
+            Proto::Common::V1::KeyValue.new(
               key: "service.name",
-              value: OpenTelemetry::Proto::Common::V1::AnyValue.new(ENV["HONEYCOMB_DATASET"])
+              value: Proto::Common::V1::AnyValue.new(ENV["HONEYCOMB_DATASET"])
             )
           ]
         )
