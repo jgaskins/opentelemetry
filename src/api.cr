@@ -11,6 +11,7 @@ module OpenTelemetry
 
       def to_protobuf
         Proto::Trace::V1::ResourceSpans.new(
+          resource: resource_from_env,
           instrumentation_library_spans: [
             Proto::Trace::V1::InstrumentationLibrarySpans.new(
               instrumentation_library: Proto::Common::V1::InstrumentationLibrary.new(
@@ -20,6 +21,19 @@ module OpenTelemetry
               spans: spans.map(&.to_protobuf)
             ),
           ],
+        )
+      end
+
+      def resource_from_env
+        return nil if ENV["HONEYCOMB_DATASET"]?.nil?
+
+        Proto::Resource::V1::Resource.new(
+          attributes: [
+            OpenTelemetry::Proto::Common::V1::KeyValue.new(
+              key: "service.name",
+              value: OpenTelemetry::Proto::Common::V1::AnyValue.new(ENV["HONEYCOMB_DATASET"])
+            )
+          ]
         )
       end
     end
