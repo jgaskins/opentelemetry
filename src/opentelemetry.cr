@@ -132,7 +132,7 @@ module OpenTelemetry
     end
 
     if env_resource_attributes = ENV["OTEL_RESOURCE_ATTRIBUTES"]?
-      env_resource_attributes.split(',').compact_map do |attribute|
+      env_resource_attributes.split(',').each do |attribute|
         key_value_attr = attribute.split('=')
         key = key_value_attr.first
         value = key_value_attr.last
