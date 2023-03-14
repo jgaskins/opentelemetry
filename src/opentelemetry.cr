@@ -114,11 +114,9 @@ module OpenTelemetry
   # end
   # ```
   def self.configure
-    yield CONFIG
+    CONFIG.service_name = ENV["OTEL_SERVICE_NAME"]?
 
-    if ENV["OTEL_SERVICE_NAME"]?.presence && !CONFIG.service_name.presence
-      CONFIG.service_name = ENV["OTEL_SERVICE_NAME"]
-    end
+    yield CONFIG
 
     # No need to configure the resource if already assigned within yield block
     return unless CONFIG.resource.nil?
@@ -133,9 +131,7 @@ module OpenTelemetry
 
     if env_resource_attributes = ENV["OTEL_RESOURCE_ATTRIBUTES"]?
       env_resource_attributes.split(',').each do |attribute|
-        key_value_attr = attribute.split('=')
-        key = key_value_attr.first
-        value = key_value_attr.last
+        key, value = attribute.split('=')
 
         # Skip if service name was already defined (previous takes precedence)
         next if key == "service.name" && CONFIG.service_name.presence
