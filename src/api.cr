@@ -8,9 +8,11 @@ module OpenTelemetry
     class Trace
       getter id : Bytes = Random::Secure.random_bytes(16)
       getter spans = [] of Span
+      property resource : Proto::Resource::V1::Resource? = nil
 
       def to_protobuf
         Proto::Trace::V1::ResourceSpans.new(
+          resource: resource,
           instrumentation_library_spans: [
             Proto::Trace::V1::InstrumentationLibrarySpans.new(
               instrumentation_library: Proto::Common::V1::InstrumentationLibrary.new(

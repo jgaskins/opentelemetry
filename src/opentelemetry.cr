@@ -28,6 +28,7 @@ module OpenTelemetry
   # ```
   def self.trace(name : String)
     trace = current_trace
+    trace.resource = CONFIG.resource
     is_new_trace = current_trace_id.nil?
     trace_id = self.current_trace_id ||= Random::Secure.random_bytes(16)
     previous_current_span = current_span
@@ -94,10 +95,14 @@ module OpenTelemetry
   end
 
   # Global OpenTelemetry configuration, intended to be called when your
-  # application starts. See `OpenTelemetry::Configuration` for more details.
+  # application starts. Supports loading configs from `OTEL_SERVICE_NAME` and
+  # `OTEL_RESOURCE_ATTRIBUTES` environment variables but it won't override what
+  # was previously configured in the block. See `OpenTelemetry::Configuration`
+  # for more details.
   #
   # ```
   # OpenTelemetry.configure do |c|
+  #   c.service_name = "crystal-service"
   #   c.exporter = OpenTelemetry::HTTPExporter.new(
   #     # Send data to Honeycomb
   #     endpoint: URI.parse("https://api.honeycomb.io")
@@ -109,7 +114,44 @@ module OpenTelemetry
   # end
   # ```
   def self.configure
+    CONFIG.service_name = ENV["OTEL_SERVICE_NAME"]?
+
     yield CONFIG
+
+    # No need to configure the resource if already assigned within yield block
+    return unless CONFIG.resource.nil?
+
+    resource_attributes = [] of Proto::Common::V1::KeyValue
+    if CONFIG.service_name.presence
+      resource_attributes << Proto::Common::V1::KeyValue.new(
+        key: "service.name",
+        value: Proto::Common::V1::AnyValue.new(CONFIG.service_name)
+      )
+    end
+
+    if env_resource_attributes = ENV["OTEL_RESOURCE_ATTRIBUTES"]?
+      env_resource_attributes.split(',').each do |attribute|
+        key, value = attribute.split('=')
+
+        # Skip if service name was already defined (previous takes precedence)
+        next if key == "service.name" && CONFIG.service_name.presence
+
+        # Ensure service name is loaded to CONFIG if assigned here
+        CONFIG.service_name = value if key == "service.name"
+
+        resource_attributes << Proto::Common::V1::KeyValue.new(
+          key: key,
+          value: Proto::Common::V1::AnyValue.new(value)
+        )
+      end
+    end
+
+    # Create shared resource if service name was assigned
+    if CONFIG.service_name.presence
+      CONFIG.resource = Proto::Resource::V1::Resource.new(
+        attributes: resource_attributes
+      )
+    end
   end
 
   # Configuration for OpenTelemetry, see `OpenTelemetry.configure` for usage.
@@ -117,6 +159,7 @@ module OpenTelemetry
     # Set the `OpenTelemetry::Exporter` instance.
     property exporter : Exporter = NullExporter.new
     property service_name : String? = ""
+    property resource : Proto::Resource::V1::Resource? = nil
   end
 
   # :nodoc:
