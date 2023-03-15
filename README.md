@@ -39,13 +39,15 @@ OpenTelemetry.configure do |c|
         # Get your Honeycomb API key from https://ui.honeycomb.io/account
         "x-honeycomb-team"    => ENV["HONEYCOMB_API_KEY"],
         # Name this whatever you like. Honeycomb will create the dataset when it
-        # begins reporting data.
+        # begins reporting data in Honeycomb Classic accounts
         "x-honeycomb-dataset" => ENV["HONEYCOMB_DATASET"],
       },
     )
   )
 end
 ```
+
+Note: The shard supports using `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables to populate the trace's associated resource (dataset in the Honeycomb example above).
 
 ### Instrumenting
 

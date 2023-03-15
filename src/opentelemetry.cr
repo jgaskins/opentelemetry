@@ -114,12 +114,16 @@ module OpenTelemetry
   # end
   # ```
   def self.configure
-    CONFIG.service_name = ENV["OTEL_SERVICE_NAME"]?
-
     yield CONFIG
 
-    # No need to configure the resource if already assigned within yield block
-    return unless CONFIG.resource.nil?
+    if env_service_name = ENV["OTEL_SERVICE_NAME"]?
+      # OTEL_SERVICE_NAME var takes precedence over yield block configuration
+      CONFIG.service_name = env_service_name
+    elsif CONFIG.resource
+      # If resource was already configured in yield block and OTEL_SERVICE_NAME
+      # ENV var isn't available means we don't need to build the resource
+      return
+    end
 
     resource_attributes = [] of Proto::Common::V1::KeyValue
     if CONFIG.service_name.presence
@@ -146,12 +150,9 @@ module OpenTelemetry
       end
     end
 
-    # Create shared resource if service name was assigned
-    if CONFIG.service_name.presence
-      CONFIG.resource = Proto::Resource::V1::Resource.new(
-        attributes: resource_attributes
-      )
-    end
+    CONFIG.resource = Proto::Resource::V1::Resource.new(
+      attributes: resource_attributes
+    )
   end
 
   # Configuration for OpenTelemetry, see `OpenTelemetry.configure` for usage.
