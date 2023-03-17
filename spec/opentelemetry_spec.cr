@@ -53,7 +53,7 @@ describe OpenTelemetry do
     OpenTelemetry.trace "" do |span|
       (span["key"] ||= "value").should eq "value"
       (span["key"] ||= "another value").should eq "value"
-      span["key"].should eq "value"
+      span["key"]?.should eq "value"
     end
 
     spans.first["key"].should eq "value"

@@ -1,14 +1,19 @@
 name: Spec
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        crystal: [1.0.0, 1.1.0, 1.1.1]
+        crystal: [latest, nightly]
 
     container:
       image: crystallang/crystal:${{ matrix.crystal }}
